@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { JWT_SECRET } from '../config/config.js';
-
+import { User } from '../db/models/index.js'
 export const issueToken = (user) => {
     return jwt.sign({
         id: user.id,
@@ -19,6 +19,21 @@ export const issueRefreshToken = (user) => {
     JWT_SECRET,
     {expiresIn: "30d"}
     );
+}
+
+export const verifyToken = async (token) => {
+    try{
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        const user = await User.findById(decoded.id);
+
+        if(!user){
+            return null;
+        }
+    return decoded;
+    }catch(error){
+        return null;
+    }
 }
 
 export const hashPassword = async (password) => {

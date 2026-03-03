@@ -1,6 +1,6 @@
 import logger from "../config/logger.js";
 import { User } from "../db/models/index.js";
-import { hashPassword, issueToken, issueRefreshToken, comparePassword } from "../services/auth.service.js";
+import { hashPassword, issueToken, issueRefreshToken, comparePassword, verifyToken } from "../services/auth.service.js";
 import crypto from "crypto";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -137,3 +137,50 @@ export const loginUser = async (req, res, next) => {
     next(error);
   }
 };
+
+export const refreshAccessToken = async(req, res, next) => {
+  try{
+    const { refreshToken } = req.body || {};
+
+    if(!refreshToken){
+        res.status(401);
+        return next(new Error("refresh token required"))
+    }
+
+    const decoded = await verifyToken(refreshToken);
+
+    if (!decoded) {
+      res.status(401);
+      return next(new Error("refresh token invalid"));
+    }
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      res.status(403);
+      return next(new Error("invalid refresh token"));
+    }
+
+    const valid = await Promise.any(user.refreshTokens.map((rt) => comparePassword(refreshToken, rt.token)));
+
+    if (!valid) {
+      res.status(403);
+      return next(new Error("invalid refresh token"));
+    }
+
+    const newAccessToken = issueToken({
+      id: user._id,
+      email: user.email,
+    });
+    return res.json({
+      msg: "Token refreshed",
+      data: {
+        accessToken: newAccessToken,
+      },
+      error: false,
+    });
+  }catch(error){
+    logger.error(error, "refreshAccessToken error:");
+    next(error);
+  }
+}
