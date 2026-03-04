@@ -184,3 +184,43 @@ export const refreshAccessToken = async(req, res, next) => {
     next(error);
   }
 }
+
+export const logoutUser = async(req, res, next) => {
+  try{
+    const userId = req.user.id;
+    const { refreshToken_id } = req.body || {};
+
+    
+    if (!refreshToken_id) {
+      res.status(400);
+      return next(new Error("refreshToken_id required"));
+    }
+
+    const user = await User.findById(userId);
+
+    const initialCount  = user.refreshTokens.length;
+
+    const filteredTokens = user.refreshTokens.map((rt) => {
+      if(rt.id === refreshToken_id) return false;
+      return rt
+    });
+
+    if (initialCount === filteredTokens.filter(Boolean).length){
+      res.status(400);
+      return next(new Error("invalid refreshToken_id"))
+    };
+
+    user.refreshTokens = filteredTokens.filter(Boolean);
+    await user.save();
+
+    return res.status(200).json({
+      msg: "Completed logout: ",
+      data: {refreshToken_id},
+      error: false,
+    });
+    
+  }catch(error){
+    logger.error(error, "logoutUser error:")
+    next(error);
+  }
+}
