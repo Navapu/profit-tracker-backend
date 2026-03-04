@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 const options = {
-    collection: "sales",
+    collection: "transactions",
     strict: true,
     collation: {
         locale: "en",
@@ -8,11 +8,16 @@ const options = {
     }
 };
 
-const saleSchema = new mongoose.Schema({
+const transactionSchema = new mongoose.Schema({
     userId:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    type: {
+        type: String,
+        required: true,
+        enum: ["income", "expense"]
     },
     name:{
         type: String,
@@ -23,18 +28,18 @@ const saleSchema = new mongoose.Schema({
         required: true,
         min: 0.01
     },
-    saleDate: {
+    transactionDate: {
         type: Date,
         required: true
     },
-    shippingDate: {
+    completionDate: {
         type: Date
     },
     status: {
         type: String,
-        enum: ["sold", "shipped", "canceled", "returned"],
+        enum: ["completed", "pending", "canceled", "returned"],
         required: true
     }
 }, {timestamps: true}, options)
 
-export const Sale = mongoose.model('Sale', saleSchema)
+export const Transaction = mongoose.model('Transaction', transactionSchema)

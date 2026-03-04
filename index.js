@@ -3,6 +3,8 @@ import { PORT, BACKEND_URL} from './config/config.js';
 import { connectDB } from './db/mongoose.js';
 import logger from "./config/logger.js";
 import healthRoutes from "./routes/health.routes.js";
+import transactionRoutes from "./routes/transaction.routes.js";
+
 import { notFoundHandler, errorMiddleware } from './middlewares/error.middleware.js';
 import authRouter from './routes/auth.routes.js';
 
@@ -24,7 +26,7 @@ app.get('/', (req, res) => {
 
 // Mount API routes
 app.use('/auth', authRouter);
-
+app.use('/transactions', transactionRoutes);
 app.use("/", healthRoutes);
 
 

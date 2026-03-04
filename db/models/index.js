@@ -2,3 +2,4 @@
 // Archivo para centralizar todos los modelos en un unico archivo para ser usados por los controladores.
 
 export {User} from './user.model.js';
+export {Transaction} from './transaction.model.js'
