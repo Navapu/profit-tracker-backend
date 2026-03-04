@@ -109,7 +109,12 @@ export const loginUser = async (req, res, next) => {
       id: user._id,
       email: user.email
     });
-    
+    const now = new Date();
+    user.refreshTokens = user.refreshTokens.filter(rt => {
+      if(!rt.expiresAt) return false;
+      return rt.expiresAt > now;
+    });
+
     const refreshTokenHashed = await hashPassword(refreshToken);
     const id = crypto.randomBytes(16).toString("hex");
 
