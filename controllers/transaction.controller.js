@@ -51,3 +51,51 @@ export const createTransaction = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getTransactions = async (req, res, next) => {
+  try{
+    const userId = req.user.id;
+    const filter = { userId };
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const offset = (page - 1) * limit;
+    if(req.query.type) filter.type = req.query.type;
+    if(req.query.search) filter.name = {$regex: req.query.search, $options: "i"};    
+    if(req.query.status) filter.status = req.query.status;
+    
+    const sortOrder = req.query.order === "asc" ? 1 : -1
+        
+    if (req.query.minAmount || req.query.maxAmount) {
+      filter.amount = {};
+      if (req.query.minAmount) filter.amount.$gte = Number(req.query.minAmount);
+      if (req.query.maxAmount) filter.amount.$lte = Number(req.query.maxAmount);
+    }
+
+    if(req.query.startDate || req.query.endDate){
+      filter.transactionDate = {};
+      if(req.query.startDate) filter.transactionDate.$gte = new Date(req.query.startDate);
+      if(req.query.endDate) filter.transactionDate.$lte = new Date(req.query.endDate);
+    }
+
+
+    const totalTransactions = await Transaction.countDocuments(filter);
+
+    const transactions = await Transaction.find(filter).limit(limit).skip(offset).sort({transactionDate: sortOrder})
+
+    const totalPages = Math.ceil(totalTransactions / limit);
+
+    res.status(200).json({
+      msg: "Transactions: ",
+      data: {
+        totalTransactions,
+        limit,
+        page,
+        totalPages,
+        transactions
+      }
+    });
+  }catch(error){
+    logger.error(error, "getTransactions error:");
+    next(error);
+  }
+};
