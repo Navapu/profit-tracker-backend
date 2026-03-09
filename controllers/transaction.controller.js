@@ -110,7 +110,7 @@ export const getTransactions = async (req, res, next) => {
 export const updateTransaction = async (req, res, next) => {
   try{
     const userId = req.user.id;
-    const transactionId = req.params.id;
+    const transactionId = req.params.transactionId;
     const { type, name, amount, transactionDate, status } = req.body || {};
     const updateData = {};
 
@@ -169,6 +169,28 @@ export const updateTransaction = async (req, res, next) => {
     })
   }catch(error){
     logger.error(error, "updateTransaction error:");
+    next(error);
+  }
+};
+
+export const deleteTransaction = async(req, res, next) => {
+  try{
+    const userId = req.user.id;
+    const transactionId = req.params.transactionId;
+
+    const transaction = await Transaction.findOneAndDelete({_id: transactionId, userId: userId});
+
+    if(!transaction){
+      res.status(404);
+      return next(new Error("Transaction not found"));
+    }
+    return res.status(200).json({
+        msg: "Transaction permanently deleted",
+        data: transaction,
+        error: false
+    });
+  }catch(error){
+    logger.error(error, "deleteTransaction error:");
     next(error);
   }
 };
