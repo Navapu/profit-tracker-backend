@@ -116,7 +116,6 @@ export const getSummary = async (req, res, next) => {
       if (req.query.startDate) filter.transactionDate.$gte = new Date(req.query.startDate);
       if (req.query.endDate) filter.transactionDate.$lte = new Date(req.query.endDate);
     };
-
     const [summary] = await Transaction.aggregate([
       { $match: filter },
       {
@@ -155,6 +154,87 @@ export const getSummary = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(error, "getSummary error:");
+    next(error);
+  }
+};
+
+export const getStats = async (req, res, next) => {
+  try{
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const filter = { userId };
+    const limit = Number(req.query.months) >= 6 || Number(req.query.months) <= 12 ? Number(req.query.months) : 12;
+    
+    const month = new Date().getMonth() + 1;
+    const year = new Date().getFullYear();
+    
+    const end = new Date(); 
+    const start = new Date(end);
+    
+    start.setMonth(end.getMonth() - (limit - 1));
+    start.setDate(1); 
+
+    filter.transactionDate = { $gte: start, $lte: end };
+    const stats = await Transaction.aggregate([
+      {$match: filter},
+      {
+        $group:{
+          _id: {
+              year: { $year: "$transactionDate" },
+               month: { $month: "$transactionDate" }
+          },
+          totalIncome: {
+            $sum: {
+              $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
+            },
+          },
+          totalExpense: {
+            $sum: {
+              $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
+            },
+          }
+        }
+      },
+      { $sort:{"_id.year": -1, "_id.month": -1} },
+      { $limit: limit }
+    ]);
+    const results = {};
+    
+    for(var i = 0; i < limit; i++){
+      if(month > i){
+        results[`${year}-${String(month-i).padStart(2, '0')}`] = {
+          month: `${year}-${String(month-i).padStart(2, '0')}`,
+          totalIncome: 0,
+          totalExpense: 0,
+          balance: 0,
+        };
+      }else{
+        results[`${year - 1}-${String(12 - i + month).padStart(2, '0')}`] = {
+          month: `${year - 1}-${String(12 - i + month).padStart(2, '0')}`,
+          totalIncome: 0,
+          totalExpense: 0,
+          balance: 0,
+        };
+      }
+    }
+    stats.forEach(stat => {
+      const key = `${stat._id.year}-${String(stat._id.month).padStart(2, '0')}`;
+      if(results[key]){
+        results[key] = {
+          month: key,
+          totalIncome: stat.totalIncome,
+          totalExpense: stat.totalExpense,
+          balance: stat.totalIncome - stat.totalExpense,
+        };
+      }
+    });
+    const resultArray = Object.values(results).reverse();
+    res.status(200).json({
+      msg: "Stats obtained: ",
+      data: resultArray,
+      error: false,
+    });
+  }catch(error){
+    logger.error(error, "getStats error:");
     next(error);
   }
 };
