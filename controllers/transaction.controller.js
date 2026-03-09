@@ -107,6 +107,72 @@ export const getTransactions = async (req, res, next) => {
   }
 };
 
+export const updateTransaction = async (req, res, next) => {
+  try{
+    const userId = req.user.id;
+    const transactionId = req.params.id;
+    const { type, name, amount, transactionDate, status } = req.body || {};
+    const updateData = {};
+
+    if(!type && !name?.trim() && !amount && !transactionDate && !status){
+      res.status(400);
+      return next(new Error("No fields provided to update the transaction"));
+    };
+
+    if(type && type !== "income" && type !== "expense"){
+      res.status(400);
+      return next(new Error("type only can be 'income' or 'expense'"));
+    };
+    
+    if (name && (name.trim().length < 3 || name.trim().length > 100)) {
+      res.status(400);
+      return next(
+        new Error("name length has to be higher than 3 and lower than 100"),
+      );
+    };
+
+   if (amount && (isNaN(Number(amount)) || Number(amount) <= 0)) {
+      res.status(400);
+      return next(new Error("amount must be a valid number and higher than 0"));
+    }
+
+    if (transactionDate && !dateRegex.test(transactionDate)) {
+      res.status(400);
+      return next(new Error("transactionDate must be in format YYYY-MM-DD"));
+    }
+    if(status && (status !== "completed" && status !== "pending" && status !== "canceled" && status !== "returned")){
+      res.status(400);
+      return next(new Error("status must be 'completed', 'pending', 'canceled' or 'returned'"));
+    }
+
+    if(type) updateData.type = type;
+    if(name) updateData.name = name.trim();
+    if(amount) updateData.amount = Number(amount);
+    if(transactionDate) updateData.transactionDate = transactionDate;
+    if(status) updateData.status = status;
+
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { _id: transactionId, userId },
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if(!updatedTransaction){
+      res.status(404);
+      return next(new Error("transaction not found"));
+    }
+
+    return res.status(200).json({
+      msg: "Updated transaction: ",
+      data: updatedTransaction,
+      error: false
+    })
+  }catch(error){
+    logger.error(error, "updateTransaction error:");
+    next(error);
+  }
+};
+
 export const getSummary = async (req, res, next) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);
