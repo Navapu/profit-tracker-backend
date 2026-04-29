@@ -4,7 +4,7 @@ import { connectDB } from './db/mongoose.js';
 import logger from "./config/logger.js";
 import healthRoutes from "./routes/health.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
-
+import cors from 'cors';
 import { notFoundHandler, errorMiddleware } from './middlewares/error.middleware.js';
 import authRouter from './routes/auth.routes.js';
 
@@ -17,7 +17,7 @@ const app = express();
 // ---------------------------
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
+app.use(cors());
 connectDB();
 
 app.get('/', (req, res) => {

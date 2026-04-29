@@ -132,8 +132,10 @@ export const loginUser = async (req, res, next) => {
         email: user.email,
         username: user.username,
         token,
-        refreshToken,
-        refreshToken_id: id
+        refreshToken: {
+          refreshToken,
+          refreshToken_id: id
+        },
       },
       error: false,
     });
@@ -229,3 +231,30 @@ export const logoutUser = async(req, res, next) => {
     next(error);
   }
 }
+
+export const checkMe = async(req, res, next) => {
+  try{
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404);
+      return next(new Error("user not found"));
+    }
+
+    return res.status(200).json({
+      msg: "User info",
+      data: {
+        email: user.email,
+        username: user.username
+      },
+      error: false,
+    });
+
+    
+  }catch(error){
+    logger.error(error, "checkMe error:");
+    next(error);
+  }
+};
